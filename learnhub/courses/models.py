@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.conf import settings
+import uuid
 
 class Category(models.Model):
     '''
@@ -11,12 +12,12 @@ class Category(models.Model):
     "Mobile App Development",
     "Cybersecurity"
     '''
-    id = models.UUIDField(primary_key=True, editable=False, unique=True, null=False, blank=False)
+    id = models.UUIDField(primary_key=True, editable=False, unique=True, null=False, blank=False, default=uuid.uuid4)
     category_name = models.CharField(max_length=150, null=False, blank=False)
     category_slug = models.CharField(max_length=150, unique=True, null=False, blank=False)
         
     def save(self, *args, **kwargs):
-        if not self.slug:
+        if not self.category_slug:
             self.slug = slugify(self.category_slug)
         super().save(*args, **kwargs)
         
@@ -30,12 +31,12 @@ class Tag(models.Model):
     React
     JavaScript
     '''
-    id = models.UUIDField(primary_key=True, editable=False, unique=True, null=False, blank=False)
+    id = models.UUIDField(primary_key=True, editable=False, unique=True, null=False, blank=False, default=uuid.uuid4)
     tag_name = models.CharField(max_length=100, null=False, blank=False)
     tag_slug = models.CharField(max_length=100, unique=True, blank=False, null=False)
     
     def save(self, *args, **kwargs):
-        if not self.slug:
+        if not self.tag_slug:
             self.slug = slugify(self.tag_slug)
         super().save(*args, **kwargs)
         
@@ -44,10 +45,13 @@ class Tag(models.Model):
         
     
 class Instructor(models.Model):
-    id = models.UUIDField(primary_key=True, editable=False, unique=True, blank=False, null=False)
+    id = models.UUIDField(primary_key=True, editable=False, unique=True, blank=False, null=False, default=uuid.uuid4)
     user = models.OneToOneField(settings.AUTH_USER_MODEL,on_delete=models.CASCADE)
     phone = models.CharField(max_length=20, unique=True, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.user.email
     
 class Course(models.Model):
     '''
@@ -60,7 +64,7 @@ class Course(models.Model):
     price = 1499
     '''
     
-    id = models.UUIDField(primary_key=True, editable=False, unique=True, null=False, blank=False)
+    id = models.UUIDField(primary_key=True, editable=False, unique=True, null=False, blank=False, default=uuid.uuid4)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, blank=True, null=True)
     tag = models.ManyToManyField(Tag)
     instructor = models.ForeignKey(Instructor, on_delete=models.SET_NULL, related_name='courses', blank=True, null=True)
@@ -74,7 +78,7 @@ class Course(models.Model):
         return self.title
     
 class Lesson(models.Model):
-    id = models.UUIDField(primary_key=True, editable=False, unique=True, null=False, blank=False)
+    id = models.UUIDField(primary_key=True, editable=False, unique=True, null=False, blank=False, default=uuid.uuid4)
     title = models.CharField(max_length=200, null=True, blank=True)
     content =  models.TextField()
     order = models.PositiveIntegerField()
@@ -85,14 +89,13 @@ class Lesson(models.Model):
         return f"{self.title} and its {self.order}"
     
 class Student(models.Model):
-    id = models.UUIDField(primary_key=True, editable=False, unique=True, null=False, blank=False)
+    id = models.UUIDField(primary_key=True, editable=False, unique=True, null=False, blank=False, default=uuid.uuid4)
     user = models.OneToOneField(settings.AUTH_USER_MODEL,on_delete=models.CASCADE)
     phone = models.CharField(max_length=20, unique=True, null=True, blank=True)
-    course = models.ManyToManyField(Course)
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return self.student_name
+        return self.user.email
     
 class Enrollment(models.Model):
     STATUS = [
@@ -100,9 +103,9 @@ class Enrollment(models.Model):
         ('completed', 'Completed'),
         ('dropped', 'Dropped'),
     ]
-    id = models.UUIDField(primary_key=True, editable=False, unique=True, null=False, blank=False)
-    student = models.ForeignKey(Student, on_delete=models.SET_NULL, blank=True, null=True)
-    course = models.ForeignKey(Course, on_delete=models.SET_NULL, blank=True, null=True)
+    id = models.UUIDField(primary_key=True, editable=False, unique=True, null=False, blank=False, default=uuid.uuid4)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
     enrolled_at = models.DateTimeField(auto_now_add=True)
     progress = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)], null=True, blank=True)
     status = models.CharField(choices=STATUS, default='active', max_length=20, null=True, blank=False)
